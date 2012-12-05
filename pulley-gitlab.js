@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /*
- * Pulley-GitLab: Easy GitLab Pull Request Lander
+ * Pulley-GitLab: Easy GitLab Merge Request Lander
  * Copyright 2011 John Resig
  * Updated for GitLab 2012 Charles Phillips
  * MIT Licensed
@@ -170,16 +170,16 @@
 		process.stdout.write( "Pulling and merging results... ".blue );
 
 		if ( pull.closed ) {
-			exit("Can not merge closed Pull Requests.");
+			exit("Can not merge closed Merge Requests.");
 		}
 
 		if ( pull.merged ) {
-			exit("This Pull Request has already been merged.");
+			exit("This Merge Request has already been merged.");
 		}
 
 		// TODO: give user the option to resolve the merge by themselves
 		if ( pull.state !== 2 ) {
-			exit("This Pull Request is not automatically mergeable.");
+			exit("This Merge Request is not automatically mergeable.");
 		}
 
 		exec( checkout_cmds.join( " && " ), function( error, stdout, stderr ) {
@@ -296,7 +296,7 @@
 			}
 
 			if ( statusCode === 404 ) {
-				exit("Pull request doesn't exist");
+				exit("Merge Request doesn't exist");
 			}
 
 			if ( statusCode === 401 ) {

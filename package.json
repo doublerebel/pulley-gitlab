@@ -1,7 +1,7 @@
 {
 	"name": "pulley-gitlab",
-	"version": "0.0.1",
-	"description": "Easy GitLab Pull Request Lander",
+	"version": "0.0.2",
+	"description": "Easy GitLab Merge Request Lander",
 	"keywords": [
 		"gitlab",
 		"git",
