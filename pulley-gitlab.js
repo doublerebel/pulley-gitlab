@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /*
- * Pulley: Easy Github Pull Request Lander
+ * Pulley-GitLab: Easy GitLab Pull Request Lander
  * Copyright 2011 John Resig
+ * Updated for GitLab 2012 Charles Phillips
  * MIT Licensed
  */
 (function() {
@@ -23,35 +24,45 @@
 		done = process.argv[ 3 ],
 
 		// Localized application references
-		user_repo = "",
+		gitlab_server = "",
+		project_code = "",
 		tracker = "",
 		token = "",
 
 		// Initialize config file
-		config = JSON.parse( fs.readFileSync( __dirname + "/config.json" ) );
+		config = JSON.parse( fs.readFileSync( process.env.PWD + "/pulley-gitlab.json" ) );
 
 	// We don't want the default prompt message
 	prompt.message = "";
 
 	process.stdout.write( "Initializing... ".blue );
 
-	exec( "git config --global --get pulley.token", function( error, stdout, stderr ) {
-		token = stdout.trim();
+	gitlab_server = config.server.trim();
+	if ( gitlab_server ) {
+		check_token();
+	} else {
+		exit("Please set gitlab server in ./pulley-config.json");
+	}
 
-		if ( token ) {
-			init();
-		} else {
-			login();
-		}
-	});
+	function check_token() {
+		exec( "git config --get pulley-gitlab.token", function( error, stdout, stderr ) {
+			token = stdout.trim();
+
+			if ( token ) {
+				init();
+			} else {
+				login();
+			}
+		});
+	}
 
 	function login() {
-		console.log("\nPlease login with your GitHub credentials.");
-		console.log("Your credentials are only needed this one time to get a token from GitHub.");
+		console.log("\nPlease login with your GitLab credentials.");
+		console.log("Your credentials are only needed this one time to get a token from GitLab.");
 		prompt.start();
 		prompt.get([{
-			name: "username",
-			message: "Username",
+			name: "email",
+			message: "Email",
 			empty: false
 		}, {
 			name: "password",
@@ -59,18 +70,16 @@
 			empty: false,
 			hidden: true
 		}], function( err, result ) {
-			var auth = encodeURIComponent( result.username ) + ":" + encodeURIComponent( result.password );
-			request.post("https://" + auth + "@api.github.com/authorizations", {
+			request.post(gitlab_server + "/api/v2/session", {
 				json: true,
 				body: {
-					scopes: ["repo"],
-					note: "Pulley",
-					note_url: "https://github.com/jeresig/pulley"
+					email: result.email,
+					password: result.password
 				}
 			}, function( err, res, body ) {
-				token = body.token;
+				token = body.private_token;
 				if ( token ) {
-					exec( "git config --global --add pulley.token " + token, function( error, stdout, stderr ) {
+					exec( "git config --add pulley-gitlab.token " + token, function( error, stdout, stderr ) {
 						console.log( "Success!".green );
 						init();
 					});
@@ -87,10 +96,10 @@
 			exit("No pull request ID specified, please provide one.");
 		}
 		exec( "git remote -v show " + config.remote, function( error, stdout, stderr ) {
-			user_repo = ( /URL:.*?([\w\-]+\/[\w\-]+)/.exec( stdout ) || [] )[ 1 ];
-			tracker = config.repos[ user_repo ];
+			project_code = ( /URL:.*?[\w\-\/]+:?([\w\-]+)(?=\.git)/.exec( stdout ) || [] )[ 1 ];
+			tracker = config.repos[ project_code ];
 
-			if ( user_repo ) {
+			if ( project_code ) {
 				getStatus();
 			} else {
 				exit("External repository not found.");
@@ -124,7 +133,7 @@
 	}
 
 	function getPullData() {
-		var path = "/repos/" + user_repo + "/pulls/" + id;
+		var path = "projects/" + project_code + "/merge_request/" + id;
 
 		console.log( "done.".green );
 		process.stdout.write( "Getting pull request details... ".blue );
@@ -141,26 +150,26 @@
 					mergePull( pull );
 				}
 			} catch( e ) {
-				exit("Error retrieving pull request from Github.");
+				exit("Error retrieving pull request from GitLab.");
 			}
 		});
 	}
 
 	function mergePull( pull ) {
-		var repo = pull.head.repo.ssh_url,
-			head_branch = pull.head.ref,
-			base_branch = pull.base.ref,
+		var source_branch = pull.source_branch,
+			target_branch = pull.target_branch,
 			branch = "pull-" + id,
+			checkout = "git checkout " + target_branch,
 			checkout_cmds = [
-				"git checkout " + base_branch,
-				"git pull " + config.remote + " " + base_branch,
+				checkout,
+				"git pull " + config.remote + " " + target_branch,
 				"git submodule update --init",
 				"git checkout -b " + branch
 			];
 
 		process.stdout.write( "Pulling and merging results... ".blue );
 
-		if ( pull.state === "closed" ) {
+		if ( pull.closed ) {
 			exit("Can not merge closed Pull Requests.");
 		}
 
@@ -169,7 +178,7 @@
 		}
 
 		// TODO: give user the option to resolve the merge by themselves
-		if ( !pull.mergeable ) {
+		if ( pull.state !== 2 ) {
 			exit("This Pull Request is not automatically mergeable.");
 		}
 
@@ -185,8 +194,8 @@
 
 		function doPull( error, stdout, stderr ) {
 			var pull_cmds = [
-				"git pull " + repo + " " + head_branch,
-				"git checkout " + base_branch,
+				"git pull " + config.remote + " " + source_branch,
+				checkout,
 				"git merge --no-commit --squash " + branch
 			];
 
@@ -194,6 +203,8 @@
 				if ( /Merge conflict/i.test( stdout ) ) {
 					exit("Merge conflict. Please resolve then run: " +
 						process.argv.join(" ") + " done");
+				} else if ( /error/.test( stderr ) ) {
+					exit("Unable to merge.  Please resolve then retry:\n" + stderr);
 				} else {
 					console.log( "done.".green );
 					commit( pull );
@@ -203,28 +214,33 @@
 	}
 
 	function commit( pull ) {
-		var path = "/repos/" + user_repo + "/pulls/" + id + "/commits";
+		var path = "projects/" + project_code + "/merge_request/" + id + "/commits";
 
 		process.stdout.write( "Getting author and committing changes... ".blue );
 
 		callAPI( path, function( data ) {
 			var match,
-				msg = "Close GH-" + id + ": " + pull.title + ".",
-				author = JSON.parse( data )[ 0 ].commit.author.name,
-				base_branch = pull.base.ref,
+				msg = "Close GL-" + id + ": " + pull.title + ".",
+				commits = JSON.parse( data ),
+				author = commits[ 0 ].author_name,
+				target_branch = pull.target_branch,
+				titles = " ",
 				issues = [],
 				urls = [],
 				findBug = /#(\d+)/g;
 
-			// Search title and body for issues for issues to link to
+			// Search title and commit titles for issues for issues to link to
+			for (var i in commits) {
+				titles += commits[i].title + " "
+			}
 			if ( tracker ) {
-				while ( ( match = findBug.exec( pull.title + pull.body ) ) ) {
+				while ( ( match = findBug.exec( pull.title + titles ) ) ) {
 					urls.push( tracker + match[ 1 ] );
 				}
 			}
 
-			// Search just body for issues to add to the commit message
-			while ( ( match = findBug.exec( pull.body ) ) ) {
+			// Search just commit titles to add to the commit message
+			while ( ( match = findBug.exec( titles ) ) ) {
 				issues.push( " Fixes #" + match[ 1 ] );
 			}
 
@@ -254,9 +270,9 @@
 				}).on( "exit", function() {
 					getHEAD(function( newCommit ) {
 						if ( oldCommit === newCommit ) {
-							reset("No commit, aborting push.");
+							exit("No commit, aborting push.");
 						} else {
-							exec( "git push " + config.remote + " " + base_branch, function( error, stdout, stderr ) {
+							exec( "git push " + config.remote + " " + target_branch, function( error, stdout, stderr ) {
 								console.log( "done.".green );
 								exit();
 							});
@@ -268,9 +284,9 @@
 	}
 
 	function callAPI( path, callback ) {
-		request.get( "https://api.github.com" + path, {
+		request.get( gitlab_server + "/api/v2/" + path, {
 			headers: {
-				Authorization: "token " + token
+				"private-token": token
 			}
 		}, function( err, res, body ) {
 			var statusCode = res.socket._httpMessage.res.statusCode;

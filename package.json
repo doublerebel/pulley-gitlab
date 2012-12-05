@@ -1,22 +1,22 @@
 {
-	"name": "pulley",
-	"version": "0.2.2",
-	"description": "Easy Github Pull Request Lander",
+	"name": "pulley-gitlab",
+	"version": "0.0.1",
+	"description": "Easy GitLab Pull Request Lander",
 	"keywords": [
-		"github",
+		"gitlab",
 		"git",
 		"pull"
 	],
-	"homepage": "https://github.com/jeresig/pulley",
-	"bugs": "https://github.com/jeresig/pulley/issues",
-	"author": "John Resig (http://ejohn.org)",
-	"bin": "./pulley.js",
+	"homepage": "https://github.com/doublerebel/pulley-gitlab",
+	"bugs": "https://github.com/doublerebel/pulley-gitlab/issues",
+	"author": "Charles Phillips (http://doublerebel.com)",
+	"bin": "./pulley-gitlab.js",
 	"repository": {
 		"type": "git",
-		"url": "git://github.com/jeresig/pulley.git"
+		"url": "git://github.com/doublerebel/pulley-gitlab.git"
 	},
 	"dependencies": {
-		"prompt": "~0.1.12",
+		"prompt": "~0.2.5",
 		"request": "~2.9.202",
 		"colors": "~0.6.0"
 	},
@@ -26,6 +26,6 @@
 	"preferGlobal": "true",
 	"licenses": [{
 		"type": "MIT",
-		"url": "https://github.com/jeresig/pulley/blob/master/LICENSE"
+		"url": "https://github.com/doublerebel/pulley-gitlab/blob/master/LICENSE"
 	}]
 }

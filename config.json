@@ -1,7 +1,0 @@
-{
-	"interactive": false,
-	"remote": "upstream",
-	"repos": {
-		"jeresig/pulley": false
-	}
-}

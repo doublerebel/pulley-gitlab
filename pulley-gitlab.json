@@ -1,0 +1,8 @@
+{
+	"interactive": false,
+	"remote": "upstream",
+	"server": "http://gitlab.com",
+	"repos": {
+		"doublerebel/pulley-gitlab": false
+	}
+}
