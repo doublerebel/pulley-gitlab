@@ -32,7 +32,7 @@ Running `pulley 332` on the jQuery repo yielded the following closed [merge requ
 
 ## Contribute and Test
 
-In order to test your changes to pulley, you need the ability to:
+In order to test your changes to pulley-gitlab, you need the ability to:
 
 - Open and close merge requests
 - Push to a branch on a repo
@@ -46,7 +46,7 @@ Essentially, you need your own repo, and the ability to issue merge requests aga
 5. Publish the `test-1` branch
 6. Push the commit to the `test-1` branch on your fork of pulley-gitlab
 7. Open a merge request from `test-1` to `test` *on your own repo*
-8. Use pulley to merge your merge request, and ensure everything went smoothly
+8. Use pulley-gitlab to merge your merge request, and ensure everything went smoothly
 9. Submit your real merge request with your changes
 
 Please lend a hand!
